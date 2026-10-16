@@ -23,8 +23,8 @@ export default function Market() {
     const batch = batches.find((b) => b.batch_id === selectedBatch);
     if (!batch) { setPlacing(false); return; }
 
-    const orderId = await nextOrderId();
-    const routeId = await nextRouteId();
+    //const orderId = await nextOrderId();
+    //const routeId = await nextRouteId();
 
     // Create order
 
@@ -36,7 +36,7 @@ export default function Market() {
     // Update vehicle + driver status
     
     // Emit events
-    await emitEvent({
+    /*await emitEvent({
       event_type: 'ORDER_PLACED',
       source_module: 'Farmer Portal',
       severity: 'info',
@@ -46,7 +46,7 @@ export default function Market() {
       related_order_id: orderId,
       related_batch_id: selectedBatch,
       notify_farmer_id: FARMER_ID,
-    });
+    });*/
 
     await emitEvent({
       event_type: 'ROUTE_ASSIGNED',
