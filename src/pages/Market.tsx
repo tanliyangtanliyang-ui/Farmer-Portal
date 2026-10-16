@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Store, TrendingUp, Star, MapPin, ArrowRight, ShoppingCart, X, CheckCircle2 } from 'lucide-react';
 import { useEventContext } from '../lib/EventContext';
-import { supabase } from '../lib/supabase';
 import { emitEvent, nextOrderId, nextRouteId } from '../lib/eventBus';
 import { orderStatusChip, freshnessColor } from '../lib/ui';
 
@@ -28,46 +27,14 @@ export default function Market() {
     const routeId = await nextRouteId();
 
     // Create order
-    await supabase.from('orders').insert({
-      order_id: orderId,
-      buyer_id: sellModal.buyerId,
-      farmer_id: FARMER_ID,
-      batch_id: selectedBatch,
-      quantity_kg: qty,
-      price_per_kg: price,
-      total_amount: qty * price,
-      status: 'Pending',
-    });
 
     // Assign an available vehicle + driver
     const availVehicle = vehicles.find((v) => v.status === 'Idle');
     const availDriver = drivers.find((d) => d.status === 'Available');
     const hub = hubs[0];
 
-    await supabase.from('routes').insert({
-      route_id: routeId,
-      order_id: orderId,
-      vehicle_id: availVehicle?.vehicle_id ?? null,
-      driver_id: availDriver?.driver_id ?? null,
-      hub_id: hub?.hub_id ?? null,
-      origin: batch.origin_farm,
-      destination: buyers.find((b) => b.buyer_id === sellModal.buyerId)?.name ?? 'Buyer',
-      status: availVehicle ? 'Assigned' : 'Planned',
-      eta_minutes: 45 + Math.floor(Math.random() * 60),
-      started_at: availVehicle ? new Date().toISOString() : null,
-    });
-
     // Update vehicle + driver status
-    if (availVehicle) {
-      await supabase.from('vehicles').update({ status: 'Loading' }).eq('vehicle_id', availVehicle.vehicle_id);
-    }
-    if (availDriver) {
-      await supabase.from('drivers').update({ status: 'On Duty', current_vehicle_id: availVehicle?.vehicle_id ?? null }).eq('driver_id', availDriver.driver_id);
-    }
-
-    // Update batch status
-    await supabase.from('batches').update({ status: 'Pending Pickup' }).eq('batch_id', selectedBatch);
-
+    
     // Emit events
     await emitEvent({
       event_type: 'ORDER_PLACED',
