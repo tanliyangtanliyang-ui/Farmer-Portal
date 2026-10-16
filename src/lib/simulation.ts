@@ -1,4 +1,3 @@
-import { supabase } from './supabase';
 import { emitEvent } from './eventBus';
 import type { Batch, Order, Route, Vehicle, Driver } from '../types';
 
@@ -30,16 +29,6 @@ const SCENARIOS: ((ctx: SimContext) => Promise<void>)[] = [
   },
 
   // Temperature abnormality on a batch
-  async (ctx) => {
-    const coldBatches = ctx.batches.filter((b) => b.storage_requirement === 'Cold Chain' && b.status !== 'Delivered');
-    if (coldBatches.length === 0) return;
-    const batch = coldBatches[Math.floor(Math.random() * coldBatches.length)];
-    const temp = 8 + Math.floor(Math.random() * 6);
-    await supabase.from('sensors').update({
-      last_reading: { value: temp, unit: 'C' },
-      last_reading_at: new Date().toISOString(),
-      status: 'Alert',
-    }).eq('target_id', batch.batch_id).eq('sensor_type', 'temperature');
 
     await emitEvent({
       event_type: 'TEMPERATURE_ABNORMALITY',
@@ -54,12 +43,7 @@ const SCENARIOS: ((ctx: SimContext) => Promise<void>)[] = [
   },
 
   // Traffic congestion on an active route
-  async (ctx) => {
-    const active = ctx.routes.filter((r) => r.status === 'In Transit');
-    if (active.length === 0) return;
-    const route = active[Math.floor(Math.random() * active.length)];
-    const delay = 15 + Math.floor(Math.random() * 30);
-    await supabase.from('routes').update({ eta_minutes: (route.eta_minutes + delay), status: 'Delayed' }).eq('route_id', route.route_id);
+  
 
     await emitEvent({
       event_type: 'TRAFFIC_CONGESTION',
@@ -76,22 +60,6 @@ const SCENARIOS: ((ctx: SimContext) => Promise<void>)[] = [
   },
 
   // Successful delivery
-  async (ctx) => {
-    const inTransit = ctx.orders.filter((o) => o.status === 'In Transit');
-    if (inTransit.length === 0) return;
-    const order = inTransit[Math.floor(Math.random() * inTransit.length)];
-    await supabase.from('orders').update({ status: 'Delivered', updated_at: new Date().toISOString() }).eq('order_id', order.order_id);
-    await supabase.from('batches').update({ status: 'Delivered' }).eq('batch_id', order.batch_id);
-    const route = ctx.routes.find((r) => r.order_id === order.order_id);
-    if (route) {
-      await supabase.from('routes').update({ status: 'Completed', completed_at: new Date().toISOString(), eta_minutes: 0 }).eq('route_id', route.route_id);
-    }
-    if (route?.vehicle_id) {
-      await supabase.from('vehicles').update({ status: 'Idle' }).eq('vehicle_id', route.vehicle_id);
-    }
-    if (route?.driver_id) {
-      await supabase.from('drivers').update({ status: 'Available', current_vehicle_id: null }).eq('driver_id', route.driver_id);
-    }
 
     await emitEvent({
       event_type: 'DELIVERY_COMPLETED',
@@ -110,12 +78,6 @@ const SCENARIOS: ((ctx: SimContext) => Promise<void>)[] = [
   },
 
   // Quality inspection failure
-  async (ctx) => {
-    const candidates = ctx.batches.filter((b) => b.status === 'Pending Pickup' || b.status === 'Stored');
-    if (candidates.length === 0) return;
-    const batch = candidates[Math.floor(Math.random() * candidates.length)];
-    const newScore = Math.max(40, batch.freshness_score - 15);
-    await supabase.from('batches').update({ freshness_score: newScore, status: 'Rejected' }).eq('batch_id', batch.batch_id);
 
     await emitEvent({
       event_type: 'QUALITY_INSPECTION_FAILED',
