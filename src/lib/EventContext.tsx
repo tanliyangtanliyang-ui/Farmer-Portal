@@ -9,8 +9,6 @@ const FARMER_ID = 'F-1001';
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Farmer, Buyer, Driver, Vehicle, Hub, Sensor, Batch, Order, Route, FarmEvent, Notification } from '../types';
-652181a (Remove all remaining Supabase references and clean up build)
-
 interface EventContextValue {
   farmer: Farmer | null; farmers: Farmer[]; buyers: Buyer[]; drivers: Driver[]; vehicles: Vehicle[]; hubs: Hub[];
   sensors: Sensor[]; batches: Batch[]; orders: Order[]; routes: Route[]; events: FarmEvent[]; notifications: Notification[];
