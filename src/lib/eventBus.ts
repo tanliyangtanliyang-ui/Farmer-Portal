@@ -1,4 +1,3 @@
-import { supabase } from './supabase';
 import type { ModuleName, Severity } from '../types';
 
 let eventCounter = 10000;
