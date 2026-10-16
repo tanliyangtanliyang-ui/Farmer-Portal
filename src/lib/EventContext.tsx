@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
-import { supabase } from './supabase';
 import { startSimulation, stopSimulation } from './simulation';
 import type {
   Farmer, Buyer, Driver, Vehicle, Hub, Sensor, Batch, Order, Route, FarmEvent, Notification,
