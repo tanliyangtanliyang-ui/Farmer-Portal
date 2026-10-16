@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Store, TrendingUp, Star, MapPin, ArrowRight, ShoppingCart, X, CheckCircle2 } from 'lucide-react';
 import { useEventContext } from '../lib/EventContext';
-import { emitEvent, nextOrderId, nextRouteId } from '../lib/eventBus';
 import { orderStatusChip, freshnessColor } from '../lib/ui';
 import { Store } from 'lucide-react';
 
