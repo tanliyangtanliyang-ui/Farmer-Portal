@@ -3,6 +3,7 @@ import { Store, TrendingUp, Star, MapPin, ArrowRight, ShoppingCart, X, CheckCirc
 import { useEventContext } from '../lib/EventContext';
 import { emitEvent, nextOrderId, nextRouteId } from '../lib/eventBus';
 import { orderStatusChip, freshnessColor } from '../lib/ui';
+import { Store } from 'lucide-react';
 
 const FARMER_ID = 'F-1001';
 
@@ -238,8 +239,6 @@ export default function Market() {
       )}
     </div>
   );
-
-import { Store } from 'lucide-react';
 
 export default function Market() {
   return <div className="space-y-6 animate-fade-in"><div><h2 className="text-xl font-bold text-slate-800">Market Connection</h2><p className="text-sm text-slate-400">Buyer and order data are not connected in this standalone portal.</p></div><div className="card p-10 text-center"><Store className="w-8 h-8 text-brand-500 mx-auto mb-3" /><p className="font-semibold text-slate-700">No market data available</p><p className="text-sm text-slate-400 mt-1">Connect your preferred backend to manage buyers, orders, and routes.</p></div></div>;
