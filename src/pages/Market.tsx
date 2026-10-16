@@ -48,7 +48,7 @@ export default function Market() {
       notify_farmer_id: FARMER_ID,
     });*/
 
-    await emitEvent({
+    /*await emitEvent({
       event_type: 'ROUTE_ASSIGNED',
       source_module: 'Hub Control Tower',
       severity: 'info',
@@ -61,7 +61,7 @@ export default function Market() {
       related_driver_id: availDriver?.driver_id ?? null,
       related_hub_id: hub?.hub_id ?? null,
       notify_farmer_id: FARMER_ID,
-    });
+    });*/
 
     setSuccess(orderId);
     setPlacing(false);
