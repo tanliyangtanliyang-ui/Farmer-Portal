@@ -8,38 +8,38 @@ import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Freshness from './pages/Freshness';
 import Pickup from './pages/Pickup';
-import Market from './pages/Market';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
-import EventStream from './pages/EventStream';
 import type { FarmEvent } from './types';
+import CanonicalShipment, { type SharedShipmentState } from './components/CanonicalShipment';
+import RoleRecordPanel from './components/RoleRecordPanel';
+import { DataDetails } from './components/DataDetails';
+import { useApiStatus } from './lib/insights';
 
 export type PageId =
   | 'dashboard'
   | 'products'
   | 'freshness'
   | 'pickup'
-  | 'market'
   | 'analytics'
-  | 'profile'
-  | 'events';
+  | 'profile';
 
 const PAGE_TITLES: Record<PageId, string> = {
   dashboard: 'Dashboard',
   products: 'My Products',
   freshness: 'Freshness Monitor',
   pickup: 'Pickup Schedule',
-  market: 'Market Connection',
   analytics: 'Farm Analytics',
   profile: 'Profile',
-  events: 'Event Stream',
 };
 
 function Portal() {
-  const { events, connected } = useEventContext();
+  const { events } = useEventContext();
+  const connected = useApiStatus();
   const [page, setPage] = useState<PageId>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [shipmentState, setShipmentState] = useState<SharedShipmentState>({ loading: true });
   const seenEventIds = useRef<Set<string>>(new Set());
 
   // Pop a toast whenever a new event arrives
@@ -70,14 +70,16 @@ function Portal() {
           <NotificationCenter />
         </Topbar>
         <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
+          <DataDetails storageKey="fx.farmer.dataDetails" className="border-slate-200 bg-white" mutedClassName="text-slate-500">
+            <CanonicalShipment onScenarioChange={setShipmentState} />
+            <RoleRecordPanel />
+          </DataDetails>
           {page === 'dashboard' && <Dashboard onNavigate={navigate} />}
-          {page === 'products' && <Products />}
+          {page === 'products' && <Products shipmentState={shipmentState} />}
           {page === 'freshness' && <Freshness />}
           {page === 'pickup' && <Pickup />}
-          {page === 'market' && <Market />}
           {page === 'analytics' && <Analytics />}
           {page === 'profile' && <Profile />}
-          {page === 'events' && <EventStream />}
         </main>
       </div>
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

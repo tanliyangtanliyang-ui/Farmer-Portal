@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { Bell, X, CheckCheck, Radio } from 'lucide-react';
-import { useEventContext } from '../lib/EventContext';
-import { severityDot, severityChip, timeAgo, moduleIcon } from '../lib/ui';
+import { Bell, X, CheckCheck } from 'lucide-react';
+import { useFarmerNotifications } from '../lib/insights';
+import { timeAgo } from '../lib/ui';
 
 export default function NotificationCenter() {
-  const { notifications, unreadCount, markAllRead, markRead, connected } = useEventContext();
+  const { notes: notifications, unread: unreadCount, markAllRead, markRead, isRead } = useFarmerNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -36,9 +36,7 @@ export default function NotificationCenter() {
           <div className="flex items-center justify-between p-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-800">Notifications</h3>
-              <span className={`chip ${connected ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>
-                <Radio className="w-3 h-3" /> {connected ? 'Live' : 'Connecting'}
-              </span>
+              <span className="chip bg-slate-100 text-slate-500">your records</span>
             </div>
             <div className="flex items-center gap-1">
               {unreadCount > 0 && (
@@ -54,22 +52,22 @@ export default function NotificationCenter() {
 
           <div className="flex-1 overflow-y-auto">
             {notifications.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-10">No notifications yet</p>
+              <p className="text-sm text-slate-400 text-center py-10 px-4">No updates yet. Hub decisions on your pickups and buyer orders for your produce appear here.</p>
             ) : (
               notifications.map((n) => (
                 <button
                   key={n.id}
                   onClick={() => markRead(n.id)}
-                  className={`w-full text-left flex gap-3 p-3.5 border-b border-slate-50 hover:bg-slate-50 transition ${!n.read ? 'bg-brand-50/30' : ''}`}
+                  className={`w-full text-left flex gap-3 p-3.5 border-b border-slate-50 hover:bg-slate-50 transition ${!isRead(n.id) ? 'bg-brand-50/30' : ''}`} data-testid="farmer-note"
                 >
-                  <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${severityDot(n.severity)}`} />
+                  <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.tone === 'warning' ? 'bg-amber-500' : n.tone === 'success' ? 'bg-brand-500' : 'bg-sky2-500'}`} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-slate-800 text-sm truncate">{n.title}</p>
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />}
+                      {!isRead(n.id) && <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
-                    <p className="text-[10px] text-slate-400 mt-1">{timeAgo(n.created_at)}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.detail}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{timeAgo(n.at)}</p>
                   </div>
                 </button>
               ))

@@ -4,6 +4,8 @@ import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Served under /farmer/ so the unified Farmer/Buyer portal (port 5101) can proxy it on the same origin.
+  base: '/farmer/',
   plugins: [react()],
   resolve: {
     alias: {

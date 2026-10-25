@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/farmer/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

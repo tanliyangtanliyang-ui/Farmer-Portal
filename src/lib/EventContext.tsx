@@ -1,14 +1,11 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
-import { startSimulation, stopSimulation } from './simulation';
 import type {
   Farmer, Buyer, Driver, Vehicle, Hub, Sensor, Batch, Order, Route, FarmEvent, Notification,
 } from '../types';
 
 const FARMER_ID = 'F-1001';
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { Farmer, Buyer, Driver, Vehicle, Hub, Sensor, Batch, Order, Route, FarmEvent, Notification } from '../types';
 interface EventContextValue {
   farmer: Farmer | null; farmers: Farmer[]; buyers: Buyer[]; drivers: Driver[]; vehicles: Vehicle[]; hubs: Hub[];
   sensors: Sensor[]; batches: Batch[]; orders: Order[]; routes: Route[]; events: FarmEvent[]; notifications: Notification[];

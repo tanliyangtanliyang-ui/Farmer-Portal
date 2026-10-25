@@ -1,260 +1,143 @@
-import { Package, Star, Truck, ShoppingCart, CloudRain, MapPin, Thermometer, Leaf, AlertTriangle, ArrowRight, TrendingUp, Radio, Activity, Snowflake } from 'lucide-react';
-import { useEventContext } from '../lib/EventContext';
-import { batchStatusChip, freshnessColor, freshnessLabel, storageIcon, timeAgo, severityDot, moduleIcon } from '../lib/ui';
-import type { PageId } from '../App';
+import { Package, Truck, ShoppingCart, MapPin, Leaf, ArrowRight, TrendingUp, Star, BarChart3, Lightbulb, History } from 'lucide-react';
+import { useFarmerInsights, kg, rm, dateText, shelfTone } from '../lib/insights';
+import { Kpi, LoadState, SourceNote, Empty } from '../components/InsightBits';
 
 interface DashboardProps {
-  onNavigate: (page: 'products' | 'freshness' | 'pickup' | 'market' | 'events') => void;
+  onNavigate: (page: 'products' | 'freshness' | 'pickup' | 'analytics') => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-  const { farmer, batches, orders, routes, sensors, events, connected } = useEventContext();
-
-  const totalKg = batches.reduce((s, p) => s + Number(p.quantity_kg), 0);
-  const avgFreshness = batches.length
-    ? Math.round(batches.reduce((s, p) => s + p.freshness_score, 0) / batches.length)
-    : 0;
-  const activeOrders = orders.filter((o) => o.status === 'Pending' || o.status === 'In Transit' || o.status === 'Confirmed').length;
-  const activeRoutes = routes.filter((r) => r.status === 'In Transit' || r.status === 'Delayed').length;
-  const alertSensors = sensors.filter((s) => s.status === 'Alert');
-
-  const kpis = [
-    { label: 'Active Produce', value: `${totalKg} kg`, icon: Package, tint: 'from-brand-400 to-brand-600' },
-    { label: 'Avg Freshness Score', value: `${avgFreshness}%`, icon: Star, tint: 'from-amber-400 to-amber-500' },
-    { label: 'Upcoming Pickup', value: activeRoutes > 0 ? `${activeRoutes} active` : 'Today 3:30 PM', icon: Truck, tint: 'from-sky2-400 to-sky2-600' },
-    { label: 'Active Orders', value: `${activeOrders}`, icon: ShoppingCart, tint: 'from-emerald-400 to-emerald-600' },
-  ];
-
-  const recent = [...batches].slice(0, 4);
-  const recentEvents = events.slice(0, 5);
-  const batchSensors = sensors.filter((s) => s.target_type === 'batch');
-  const tempReading = (batchId: string) => batchSensors.find((s) => s.target_id === batchId && s.sensor_type === 'temperature');
-  const humidityReading = (batchId: string) => batchSensors.find((s) => s.target_id === batchId && s.sensor_type === 'humidity');
+  const { data, error, loading } = useFarmerInsights();
+  const hour = Number(new Date().toLocaleString('en-MY', { hour: 'numeric', hour12: false, timeZone: 'Asia/Kuala_Lumpur' }));
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const farm = data?.farms[0];
+  const live = data?.live.totals; const ds = data?.dataset.kpis; const up = data?.live.upcoming_pickup;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-600 to-brand-800 p-6 sm:p-8 text-white shadow-soft">
         <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute right-16 top-10 w-20 h-20 rounded-full bg-white/5" />
         <div className="relative">
           <div className="flex items-center gap-2">
             <Leaf className="w-4 h-4 text-brand-50/80" />
-            <p className="text-brand-50/80 text-sm font-semibold">Good Morning, {farmer?.farm_name ?? 'ABC Farm'} 🌱</p>
-            <span className={`chip ${connected ? 'bg-white/20 text-white' : 'bg-white/10 text-brand-50/70'}`}>
-              <Radio className={`w-3 h-3 ${connected ? 'animate-pulse' : ''}`} /> {connected ? 'Live' : 'Connecting'}
-            </span>
+            <p className="text-brand-50/80 text-sm font-semibold" data-testid="farmer-greeting">{greeting}, {data?.farmer.name ?? 'farmer'}</p>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold mt-1">Your farm performance today</h2>
-          <p className="text-brand-50/80 mt-2 max-w-lg text-sm">
-            Farmer ID: <span className="font-mono font-bold">{farmer?.farmer_id ?? 'F-1001'}</span> · {batches.length} batches · {orders.length} orders · {activeRoutes} routes in transit
+          <h2 className="text-2xl sm:text-3xl font-extrabold mt-1">{farm?.name ?? 'Your farm'}</h2>
+          <p className="text-brand-50/80 mt-2 max-w-xl text-sm">
+            Farmer ID <span className="font-mono font-bold">{data?.farmer.farmer_id ?? '…'}</span>
+            {farm && <> · {farm.region}, {farm.state}</>}
+            {data?.farmer.cooperative_name && <> · {data.farmer.cooperative_name}</>}
           </p>
           <div className="flex flex-wrap gap-2 mt-4">
             <button onClick={() => onNavigate('products')} className="px-4 py-2 rounded-xl bg-white text-brand-700 font-semibold text-sm hover:bg-brand-50 transition flex items-center gap-1.5">
-              Register Produce <ArrowRight className="w-4 h-4" />
+              Register produce <ArrowRight className="w-4 h-4" />
             </button>
-            <button onClick={() => onNavigate('freshness')} className="px-4 py-2 rounded-xl bg-white/15 text-white font-semibold text-sm hover:bg-white/25 transition backdrop-blur-sm">
-              View Freshness
-            </button>
-            <button onClick={() => onNavigate('events')} className="px-4 py-2 rounded-xl bg-white/15 text-white font-semibold text-sm hover:bg-white/25 transition backdrop-blur-sm flex items-center gap-1.5">
-              <Activity className="w-4 h-4" /> Event Stream
-            </button>
+            <button onClick={() => onNavigate('pickup')} className="px-4 py-2 rounded-xl bg-white/15 text-white font-semibold text-sm hover:bg-white/25 transition">Pickup schedule</button>
+            <button onClick={() => onNavigate('freshness')} className="px-4 py-2 rounded-xl bg-white/15 text-white font-semibold text-sm hover:bg-white/25 transition">Freshness</button>
           </div>
         </div>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((k) => {
-          const Icon = k.icon;
-          return (
-            <div key={k.label} className="card p-5">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${k.tint} flex items-center justify-center mb-3`}>
-                <Icon className="w-5 h-5 text-white" strokeWidth={2.2} />
-              </div>
-              <p className="text-2xl font-extrabold text-slate-800">{k.value}</p>
-              <p className="text-xs font-semibold text-slate-400 mt-0.5">{k.label}</p>
-            </div>
-          );
-        })}
-      </div>
+      <LoadState loading={loading} error={error} />
 
-      {/* Farm status */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Weather */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-slate-800">Weather</h3>
-            <span className="chip bg-sky2-100 text-sky2-700">Live</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-sky2-100 flex items-center justify-center">
-              <CloudRain className="w-8 h-8 text-sky2-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-extrabold text-slate-800">24°C</p>
-              <p className="text-sm text-slate-500">Rain Expected</p>
+      {data && live && ds && (
+        <>
+          <div>
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Now (records created in the portals)</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="farmer-live-kpis">
+              <Kpi icon={Package} tint="from-brand-400 to-brand-600" label="Produce registered" value={kg(live.registered_kg)} hint={`${live.produce_registered} registrations`} />
+              <Kpi icon={Truck} tint="from-sky2-400 to-sky2-600" label="Next pickup" value={up ? dateText(up.pickup_date) : 'None booked'} hint={up ? `${up.product_name} ${kg(up.quantity_kg)} · ${up.status_label}` : `${live.requests} requests so far`} />
+              <Kpi icon={ShoppingCart} tint="from-emerald-400 to-emerald-600" label="Sold through the hub" value={kg(live.sold_kg)} hint={`${live.orders} buyer orders · ${rm(live.sold_value_sen)}`} />
+              <Kpi icon={TrendingUp} tint="from-amber-400 to-amber-500" label="Delivered to buyers" value={kg(live.delivered_kg)} hint="confirmed by proof of delivery" />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-            <div className="rounded-xl bg-slate-50 py-2">
-              <p className="text-xs text-slate-400">Humidity</p>
-              <p className="font-bold text-slate-700">78%</p>
-            </div>
-            <div className="rounded-xl bg-slate-50 py-2">
-              <p className="text-xs text-slate-400">Wind</p>
-              <p className="font-bold text-slate-700">12 km/h</p>
-            </div>
-            <div className="rounded-xl bg-slate-50 py-2">
-              <p className="text-xs text-slate-400">UV</p>
-              <p className="font-bold text-slate-700">Low</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Farm map */}
-        <div className="card p-5">
-          <h3 className="font-bold text-slate-800 mb-3">Farm Location</h3>
-          <div className="relative h-40 rounded-xl overflow-hidden bg-gradient-to-br from-brand-100 to-sky2-100">
-            <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 30% 40%, #86efac 2px, transparent 2px), radial-gradient(circle at 70% 60%, #93c5fd 2px, transparent 2px)', backgroundSize: '24px 24px' }} />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="relative">
-                <span className="absolute inset-0 rounded-full bg-brand-500/40 animate-pulse-ring" />
-                <div className="relative w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center shadow-soft">
-                  <MapPin className="w-5 h-5 text-white" />
+          <div>
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Your history ({dateText(data.dataset.window.from)} – {dateText(data.dataset.window.to)}, FarmXpress dataset)</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="farmer-history-kpis">
+              <Kpi icon={Package} tint="from-brand-400 to-brand-600" label="Harvested and sent to hub" value={kg(ds.harvested_kg)} hint={`${ds.batches} batches`} />
+              <Kpi icon={Star} tint="from-amber-400 to-amber-500" label="Average freshness at hub QC" value={ds.avg_qc_freshness ?? '-'} hint={`score out of 100 · ${ds.qc_inspected} inspections`} />
+              <Kpi icon={ShoppingCart} tint="from-emerald-400 to-emerald-600" label="Delivered to buyers" value={kg(ds.delivered_to_buyers_kg)} hint={`${ds.buyers_reached} buyers · ${ds.buyer_orders} orders`} />
+              <Kpi icon={History} tint="from-sky2-400 to-sky2-600" label="Sales value" value={rm(ds.sales_value_sen)} hint="allocated kg × order price" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="card p-5">
+              <h3 className="font-bold text-slate-800 mb-3">Farm location</h3>
+              {farm ? (
+                <div className="space-y-2 text-sm">
+                  <p className="flex items-center gap-2 text-slate-700"><MapPin className="w-4 h-4 text-brand-600" /> <span className="font-semibold">{farm.name}</span></p>
+                  <p className="text-slate-500">{farm.region}, {farm.state}</p>
+                  {farm.lat != null && <p className="text-xs text-slate-400 font-mono">{farm.lat.toFixed(4)}, {farm.lng?.toFixed(4)}</p>}
+                  {data.dataset.hubs[0] && <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">Usual hub: <span className="font-semibold">{data.dataset.hubs[0].name}</span> ({data.dataset.hubs[0].batches} batches)</p>}
                 </div>
+              ) : <Empty>No farm recorded.</Empty>}
+              <SourceNote>Weather and farm sensors are not connected to FarmXpress, so none are shown.</SourceNote>
+            </div>
+
+            <div className="card p-5 lg:col-span-2">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Lightbulb className="w-4 h-4 text-amber-500" /> Next steps</h3>
+                <button onClick={() => onNavigate('pickup')} className="text-sm font-semibold text-brand-600 flex items-center gap-1">Pickup schedule <ArrowRight className="w-4 h-4" /></button>
               </div>
-            </div>
-            <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 bg-white/90 backdrop-blur rounded-lg px-2.5 py-1.5">
-              <MapPin className="w-3.5 h-3.5 text-brand-600" />
-              <span className="text-xs font-semibold text-slate-700">{farmer?.location ?? 'Green Valley, Sector 14'}</span>
+              {data.pickup_recommendations.length === 0 ? (
+                <Empty>{data.live.produce.length ? 'All your registered produce already has a pickup request.' : 'Register produce to get a pickup recommendation.'}</Empty>
+              ) : (
+                <ul className="space-y-2" data-testid="dashboard-recommendations">
+                  {data.pickup_recommendations.slice(0, 3).map((r) => (
+                    <li key={r.produce_id} className="rounded-xl border border-slate-100 p-3 text-sm">
+                      <p className="font-semibold text-slate-800">Request pickup for {r.product_name} ({kg(r.kg)}) by {dateText(r.request_pickup_by)}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{r.reasons[0]}{r.transport === 'refrigerated' ? ' · refrigerated transport' : ''}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Farm condition + IoT */}
-        <div className="card p-5">
-          <h3 className="font-bold text-slate-800 mb-3">Farm Condition & IoT</h3>
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm text-slate-600"><Thermometer className="w-4 h-4 text-orange-500" /> Temperature</span>
-              <span className="font-bold text-slate-800">24°C</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm text-slate-600"><CloudRain className="w-4 h-4 text-sky2-500" /> Weather</span>
-              <span className="font-bold text-slate-800">Rain Expected</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm text-slate-600"><Leaf className="w-4 h-4 text-brand-500" /> Soil Moisture</span>
-              <span className="font-bold text-brand-600">Optimal</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm text-slate-600"><Snowflake className="w-4 h-4 text-sky2-500" /> IoT Sensors</span>
-              <span className="font-bold text-slate-800">{batchSensors.length} active {alertSensors.length > 0 && <span className="text-red-500">({alertSensors.length} alert)</span>}</span>
-            </div>
-          </div>
-          <div className="mt-4 rounded-xl bg-amber-50 border border-amber-100 p-3">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-amber-700">AI Recommendation</p>
-                <p className="text-xs text-amber-600 mt-0.5">Harvest leafy vegetables earlier to avoid rain damage.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-800">Recent produce</h3>
+                <button onClick={() => onNavigate('products')} className="text-sm font-semibold text-brand-600 flex items-center gap-1">View all <ArrowRight className="w-4 h-4" /></button>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent products + events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-800">Recent Produce</h3>
-            <button onClick={() => onNavigate('products')} className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
-              View all <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-          {recent.length === 0 ? (
-            <p className="text-sm text-slate-400 py-6 text-center">No produce registered yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {recent.map((p) => {
-                const temp = tempReading(p.batch_id);
-                return (
-                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition">
-                    <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-lg">
-                      {storageIcon(p.storage_requirement)}
+              {data.live.produce.length === 0 ? <Empty>No produce registered yet.</Empty> : (
+                <div className="space-y-2">
+                  {data.live.produce.slice(0, 4).map((p) => (
+                    <div key={p.produce_id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-800 text-sm truncate">{p.product_name}</p>
+                        <p className="text-xs text-slate-400 font-mono">{p.produce_id} · {kg(p.quantity_kg)} · harvested {dateText(p.harvest_date)}</p>
+                      </div>
+                      <span className={`chip ${shelfTone(p.freshness.state)} text-[10px]`}>{p.freshness.days_left != null ? `${Math.max(0, p.freshness.days_left)} d left` : '-'}</span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-800 text-sm truncate">{p.product_name}</p>
-                      <p className="text-xs text-slate-400 font-mono">{p.batch_id} · {p.quantity_kg} kg</p>
-                    </div>
-                    {temp && (
-                      <span className={`text-xs font-semibold ${temp.status === 'Alert' ? 'text-red-500' : 'text-sky2-600'}`}>
-                        {String(temp.last_reading?.value ?? '--')}°C
-                      </span>
-                    )}
-                    <span className={`chip ${batchStatusChip(p.status)} text-[10px]`}>{p.status}</span>
-                    <div className="text-right">
-                      <p className={`font-bold text-sm ${freshnessColor(p.freshness_score)}`}>{p.freshness_score}%</p>
-                      <p className="text-[11px] text-slate-400">{freshnessLabel(p.freshness_score)}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-800">Live Events</h3>
-            <button onClick={() => onNavigate('events')} className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
-              View all <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-          {recentEvents.length === 0 ? (
-            <p className="text-sm text-slate-400 py-6 text-center">No events yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {recentEvents.map((ev) => (
-                <div key={ev.event_id} className="flex gap-3 p-3 rounded-xl hover:bg-slate-50 transition animate-fade-in">
-                  <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${severityDot(ev.severity)}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs">{moduleIcon(ev.source_module)}</span>
-                      <p className="font-semibold text-slate-800 text-sm truncate">{ev.title}</p>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{ev.message}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(ev.created_at)} · {ev.source_module}</p>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Add Produce', icon: Package, page: 'products' as const },
-          { label: 'Freshness AI', icon: Star, page: 'freshness' as const },
-          { label: 'Schedule Pickup', icon: Truck, page: 'pickup' as const },
-          { label: 'Find Market', icon: TrendingUp, page: 'market' as const },
-        ].map((a) => {
-          const Icon = a.icon;
-          return (
-            <button key={a.label} onClick={() => onNavigate(a.page)} className="card p-4 text-left hover:shadow-soft transition group">
-              <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-2 group-hover:bg-brand-100 transition">
-                <Icon className="w-5 h-5 text-brand-600" />
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-800">Recent sales</h3>
+                <button onClick={() => onNavigate('analytics')} className="text-sm font-semibold text-brand-600 flex items-center gap-1"><BarChart3 className="w-4 h-4" /> Analytics</button>
               </div>
-              <p className="font-semibold text-slate-800 text-sm">{a.label}</p>
-              <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">Open <ArrowRight className="w-3 h-3" /></p>
-            </button>
-          );
-        })}
-      </div>
+              {data.live.sales.length === 0 ? <Empty>No buyer orders for your produce yet.</Empty> : (
+                <div className="space-y-2">
+                  {data.live.sales.slice(0, 4).map((o) => (
+                    <div key={o.order_id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-800 text-sm truncate">{o.buyer_name ?? 'Buyer'}</p>
+                        <p className="text-xs text-slate-400 font-mono">{o.order_id} · {kg(o.kg)} · {rm(o.value_sen)}</p>
+                      </div>
+                      <span className="chip bg-sky2-100 text-sky2-700 text-[10px]">{o.progress?.label ?? o.status}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

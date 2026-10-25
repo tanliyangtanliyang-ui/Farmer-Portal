@@ -1,14 +1,18 @@
-import { Search, Menu, Sprout, Radio } from 'lucide-react';
+import { Menu, Sprout } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useFarmerInsights } from '../lib/insights';
+import { DEFAULT_FARMER_ID, DEMO_FARMERS, FARMER_ID, setDemoFarmer } from '../lib/liveApi';
 
 interface TopbarProps {
   title: string;
   onMenu: () => void;
-  connected: boolean;
+  connected?: boolean; // kept for compatibility; API status is shown in "Dataset & API details"
   children?: ReactNode;
 }
 
-export default function Topbar({ title, onMenu, connected, children }: TopbarProps) {
+export default function Topbar({ title, onMenu, children }: TopbarProps) {
+  const { data } = useFarmerInsights();
+  const name = data?.farmer.name ?? '…';
   return (
     <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="flex items-center gap-3 px-4 sm:px-6 h-16">
@@ -26,27 +30,21 @@ export default function Topbar({ title, onMenu, connected, children }: TopbarPro
         <h1 className="hidden lg:block text-lg font-bold text-slate-800">{title}</h1>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <div className="hidden sm:flex items-center relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3" />
-            <input
-              placeholder="Search batches, orders..."
-              className="pl-9 pr-3 py-2 w-48 lg:w-64 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:bg-white transition"
-            />
-          </div>
-          <span className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
-            connected ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'
-          }`}>
-            <Radio className={`w-3.5 h-3.5 ${connected ? 'animate-pulse' : ''}`} />
-            {connected ? 'Live' : 'Offline'}
-          </span>
           {children}
+          <label className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-500" title="Exhibition demo only: choose which dataset farmer this portal acts for in this browser tab. Not a login.">
+            <span className={FARMER_ID === DEFAULT_FARMER_ID ? '' : 'font-semibold text-amber-700'}>Demo farmer</span>
+            <select value={FARMER_ID} onChange={(e) => setDemoFarmer(e.target.value)} data-testid="demo-farmer"
+              className={`rounded-lg border bg-white text-slate-700 text-[11px] px-1.5 py-1 max-w-[190px] ${FARMER_ID === DEFAULT_FARMER_ID ? 'border-slate-200' : 'border-amber-400'}`}>
+              {DEMO_FARMERS.map((f) => <option key={f.id} value={f.id}>{f.id} · {f.label}</option>)}
+            </select>
+          </label>
           <div className="flex items-center gap-2 pl-2 sm:pl-3 sm:border-l sm:border-slate-100">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm">
-              AB
+              {name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
             </div>
             <div className="hidden sm:block leading-tight">
-              <p className="text-sm font-semibold text-slate-800">ABC Farm</p>
-              <p className="text-[11px] text-slate-400 font-mono">F-1001</p>
+              <p className="text-sm font-semibold text-slate-800" data-testid="topbar-farmer">{name}</p>
+              <p className="text-[11px] text-slate-400 font-mono">{data ? `${data.farmer.farmer_id} · ${data.farms[0]?.name ?? ''}` : ''}</p>
             </div>
           </div>
         </div>
